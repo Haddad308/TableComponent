@@ -1,5 +1,7 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { ChevronDown, ChevronUp } from "lucide-react";
+import { StatusTag } from "./StatusTag";
+import classNames from "classnames";
 
 // Define types for component props
 export interface HeaderConfig {
@@ -17,37 +19,6 @@ interface TableProps<T> {
   className?: string;
   emptyMessage?: string;
 }
-
-// Status tag component
-const StatusTag = ({ status }: { status: string }) => {
-  const getStatusStyles = () => {
-    switch (status.toLowerCase()) {
-      case "paid":
-        return "bg-green-100 text-green-800 border-green-200";
-      case "not paid":
-      case "unpaid":
-        return "bg-red-100 text-red-800 border-red-200";
-      case "pending":
-        return "bg-yellow-100 text-yellow-800 border-yellow-200";
-      case "processing":
-        return "bg-blue-100 text-blue-800 border-blue-200";
-      case "cancelled":
-        return "bg-gray-100 text-gray-800 border-gray-200";
-      default:
-        return "bg-gray-100 text-gray-800 border-gray-200";
-    }
-  };
-
-  console.log("status", status);
-
-  return (
-    <span
-      className={`px-2.5 py-0.5 text-xs font-medium rounded-full border ${getStatusStyles()}`}
-    >
-      {status}
-    </span>
-  );
-};
 
 // Generic table component that accepts any data type
 export default function TableComponent<T extends Record<string, any>>({
@@ -104,9 +75,10 @@ export default function TableComponent<T extends Record<string, any>>({
   };
 
   // Apply sorting to data
-  const sortedData = [...data];
-  if (sortConfig) {
-    sortedData.sort((a, b) => {
+  const sortedData = useMemo(() => {
+    if (!sortConfig) return data;
+
+    return [...data].sort((a, b) => {
       const header = headersConfig.find((h) => h.key === sortConfig.key);
       if (!header) return 0;
 
@@ -131,7 +103,7 @@ export default function TableComponent<T extends Record<string, any>>({
           : -1
         : 0;
     });
-  }
+  }, [data, sortConfig, headersConfig]);
 
   return (
     <div className="w-full overflow-x-auto rounded-lg shadow bg-white">
@@ -141,9 +113,10 @@ export default function TableComponent<T extends Record<string, any>>({
             {headersConfig.map((header) => (
               <th
                 key={header.key}
-                className={`px-6 py-3 ${
-                  header.sortable ? "cursor-pointer select-none" : ""
-                }`}
+                className={classNames("px-6 py-3", {
+                  "cursor-pointer select-none hover:text-blue-500":
+                    header.sortable,
+                })}
                 style={{ width: header.width }}
                 onClick={() => header.sortable && handleSort(header.key)}
               >
@@ -152,20 +125,24 @@ export default function TableComponent<T extends Record<string, any>>({
                   {header.sortable && (
                     <div className="flex flex-col ml-1">
                       <ChevronUp
-                        className={`h-3 w-3 ${
-                          sortConfig?.key === header.key &&
-                          sortConfig.direction === "asc"
-                            ? "text-blue-600"
-                            : "text-gray-400"
-                        }`}
+                        className={classNames("h-3 w-3", {
+                          "text-blue-600":
+                            sortConfig?.key === header.key &&
+                            sortConfig.direction === "asc",
+                          "text-gray-400":
+                            sortConfig?.key !== header.key ||
+                            sortConfig.direction !== "asc",
+                        })}
                       />
                       <ChevronDown
-                        className={`h-3 w-3 -mt-1 ${
-                          sortConfig?.key === header.key &&
-                          sortConfig.direction === "desc"
-                            ? "text-blue-600"
-                            : "text-gray-400"
-                        }`}
+                        className={classNames("h-3 w-3 -mt-1", {
+                          "text-blue-600":
+                            sortConfig?.key === header.key &&
+                            sortConfig.direction === "desc",
+                          "text-gray-400":
+                            sortConfig?.key !== header.key ||
+                            sortConfig.direction !== "desc",
+                        })}
                       />
                     </div>
                   )}
@@ -179,9 +156,10 @@ export default function TableComponent<T extends Record<string, any>>({
             sortedData.map((row, rowIndex) => (
               <tr
                 key={rowIndex}
-                className={`border-b hover:bg-gray-50 ${
+                className={classNames(
+                  "border-b hover:bg-gray-100 transition-colors",
                   rowIndex % 2 === 0 ? "bg-white" : "bg-gray-50"
-                }`}
+                )}
               >
                 {headersConfig.map((header) => (
                   <td
