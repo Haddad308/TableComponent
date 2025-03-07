@@ -1,4 +1,4 @@
-import TableComponent, { type HeaderConfig } from "./components/TableComponent";
+import TableComponent, { HeaderConfig } from "./components/TableComponent";
 
 // Define the transaction data type
 interface Transaction {
@@ -11,11 +11,16 @@ interface Transaction {
 
 // Define the headers configuration
 const headersConfig: HeaderConfig[] = [
-  { key: "id", label: "Transaction ID", type: "number", sortable: true },
+  {
+    key: "id",
+    label: "Transaction ID",
+    type: "number" as const,
+    sortable: true,
+  },
   {
     key: "amount_cents",
     label: "Amount",
-    type: "number",
+    type: "number" as const,
     sortable: true,
     formatter: (value: number) => (
       <div className="font-medium">
@@ -26,9 +31,19 @@ const headersConfig: HeaderConfig[] = [
       </div>
     ),
   },
-  { key: "currency", label: "Currency", type: "string" },
-  { key: "payment_status", label: "Status", type: "string", sortable: true },
-  { key: "created_at", label: "Created At", type: "date", sortable: true },
+  { key: "currency", label: "Currency", type: "string" as const },
+  {
+    key: "payment_status",
+    label: "Status",
+    type: "string" as const,
+    sortable: true,
+  },
+  {
+    key: "created_at",
+    label: "Created At",
+    type: "date" as const,
+    sortable: true,
+  },
 ];
 
 // Sample transaction data
@@ -84,7 +99,7 @@ function App() {
         </div>
 
         <div className="bg-white p-6 rounded-lg shadow-sm">
-          <TableComponent<Transaction>
+          <TableComponent
             headersConfig={headersConfig}
             data={transactionData}
           />

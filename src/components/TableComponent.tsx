@@ -1,47 +1,77 @@
-import React, { useState, useMemo } from "react";
-import { ChevronUp, ChevronDown } from "lucide-react";
+import { useState } from "react";
+import { ChevronDown, ChevronUp } from "lucide-react";
 
-interface HeaderConfig {
+// Define types for component props
+export interface HeaderConfig {
   key: string;
   label: string;
-  type: "number" | "string" | "date";
+  type: "string" | "number" | "date";
+  sortable?: boolean;
   width?: string;
   formatter?: (value: any) => React.ReactNode;
 }
 
-interface TableComponentProps<T> {
-  data: T[];
+interface TableProps<T> {
   headersConfig: HeaderConfig[];
+  data: T[];
+  className?: string;
+  emptyMessage?: string;
 }
 
-const defaultFormatters: Record<
-  HeaderConfig["type"],
-  (value: any) => React.ReactNode
-> = {
-  number: (value) => value.toLocaleString(),
-  string: (value) => value,
-  date: (value) =>
-    new Date(value).toLocaleString("en-US", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    }),
-};
-
-const TableComponent = <T extends Record<string, any>>({
-  data,
+// Generic table component that accepts any data type
+export default function TableComponent<T extends Record<string, any>>({
   headersConfig,
-}: TableComponentProps<T>) => {
+  data,
+  className = "",
+  emptyMessage = "No data available",
+}: TableProps<T>) {
   const [sortConfig, setSortConfig] = useState<{
     key: string;
     direction: "asc" | "desc";
   } | null>(null);
 
-  const sortedData = useMemo(() => {
-    if (!sortConfig) return data;
-    return [...data].sort((a, b) => {
+  // Handle sorting
+  const handleSort = (key: string) => {
+    const header = headersConfig.find((h) => h.key === key);
+    if (!header?.sortable) return;
+
+    setSortConfig((prevSortConfig) => {
+      if (prevSortConfig?.key === key) {
+        return {
+          key,
+          direction: prevSortConfig.direction === "asc" ? "desc" : "asc",
+        };
+      }
+      return { key, direction: "asc" };
+    });
+  };
+
+  // Format cell value based on its type
+  const formatValue = (value: any, header: HeaderConfig) => {
+    if (header.formatter) return header.formatter(value);
+    if (value === null || value === undefined) return "-";
+
+    if (header.type === "date") {
+      return new Date(value).toLocaleString("en-US", {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+    }
+
+    if (header.type === "number") {
+      return typeof value === "number" ? value.toLocaleString() : value;
+    }
+
+    return value;
+  };
+
+  // Apply sorting to data
+  const sortedData = [...data];
+  if (sortConfig) {
+    sortedData.sort((a, b) => {
       const header = headersConfig.find((h) => h.key === sortConfig.key);
       if (!header) return 0;
 
@@ -56,39 +86,54 @@ const TableComponent = <T extends Record<string, any>>({
         bValue = Number(bValue);
       }
 
-      return sortConfig.direction === "asc" ? aValue - bValue : bValue - aValue;
+      return aValue < bValue
+        ? sortConfig.direction === "asc"
+          ? -1
+          : 1
+        : aValue > bValue
+        ? sortConfig.direction === "asc"
+          ? 1
+          : -1
+        : 0;
     });
-  }, [data, sortConfig, headersConfig]);
-
-  const requestSort = (key: string) => {
-    setSortConfig((prev) => {
-      if (prev?.key === key) {
-        return prev.direction === "asc" ? { key, direction: "desc" } : null;
-      }
-      return { key, direction: "asc" };
-    });
-  };
+  }
 
   return (
-    <div className="overflow-x-auto">
-      <table className="min-w-full border border-gray-200 bg-white">
-        <thead className="bg-gray-100">
+    <div className={`w-full overflow-x-auto rounded-lg shadow ${className}`}>
+      <table className="w-full text-sm text-left">
+        <thead className="text-xs text-gray-700 uppercase bg-gray-50 border-b">
           <tr>
             {headersConfig.map((header) => (
               <th
                 key={header.key}
-                className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider cursor-pointer"
+                className={`px-6 py-3 ${
+                  header.sortable ? "cursor-pointer select-none" : ""
+                }`}
                 style={{ width: header.width }}
-                onClick={() => requestSort(header.key)}
+                onClick={() => header.sortable && handleSort(header.key)}
               >
-                <div className="flex items-center">
+                <div className="flex items-center gap-1">
                   {header.label}
-                  {sortConfig?.key === header.key &&
-                    (sortConfig.direction === "asc" ? (
-                      <ChevronUp className="ml-2 w-4 h-4" />
-                    ) : (
-                      <ChevronDown className="ml-2 w-4 h-4" />
-                    ))}
+                  {header.sortable && (
+                    <div className="flex flex-col ml-1">
+                      <ChevronUp
+                        className={`h-3 w-3 ${
+                          sortConfig?.key === header.key &&
+                          sortConfig.direction === "asc"
+                            ? "text-blue-600"
+                            : "text-gray-400"
+                        }`}
+                      />
+                      <ChevronDown
+                        className={`h-3 w-3 -mt-1 ${
+                          sortConfig?.key === header.key &&
+                          sortConfig.direction === "desc"
+                            ? "text-blue-600"
+                            : "text-gray-400"
+                        }`}
+                      />
+                    </div>
+                  )}
                 </div>
               </th>
             ))}
@@ -99,17 +144,16 @@ const TableComponent = <T extends Record<string, any>>({
             sortedData.map((row, rowIndex) => (
               <tr
                 key={rowIndex}
-                className={rowIndex % 2 === 0 ? "bg-white" : "bg-gray-50"}
+                className={`border-b hover:bg-gray-50 ${
+                  rowIndex % 2 === 0 ? "bg-white" : "bg-gray-50"
+                }`}
               >
                 {headersConfig.map((header) => (
                   <td
                     key={`${rowIndex}-${header.key}`}
                     className="px-6 py-4 whitespace-nowrap"
-                    style={{ width: header.width }}
                   >
-                    {header.formatter
-                      ? header.formatter(row[header.key])
-                      : defaultFormatters[header.type](row[header.key])}
+                    {formatValue(row[header.key], header)}
                   </td>
                 ))}
               </tr>
@@ -120,12 +164,7 @@ const TableComponent = <T extends Record<string, any>>({
                 colSpan={headersConfig.length}
                 className="px-6 py-8 text-center text-gray-500"
               >
-                <div className="flex flex-col items-center">
-                  <span className="text-lg font-medium">No Data Available</span>
-                  <p className="text-sm text-gray-400">
-                    Try adjusting filters or check back later.
-                  </p>
-                </div>
+                {emptyMessage}
               </td>
             </tr>
           )}
@@ -133,6 +172,4 @@ const TableComponent = <T extends Record<string, any>>({
       </table>
     </div>
   );
-};
-
-export default TableComponent;
+}
