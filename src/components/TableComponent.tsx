@@ -5,7 +5,7 @@ import { ChevronDown, ChevronUp } from "lucide-react";
 export interface HeaderConfig {
   key: string;
   label: string;
-  type: "string" | "number" | "date";
+  type: "string" | "number" | "date" | "status";
   sortable?: boolean;
   width?: string;
   formatter?: (value: any) => React.ReactNode;
@@ -18,11 +18,41 @@ interface TableProps<T> {
   emptyMessage?: string;
 }
 
+// Status tag component
+const StatusTag = ({ status }: { status: string }) => {
+  const getStatusStyles = () => {
+    switch (status.toLowerCase()) {
+      case "paid":
+        return "bg-green-100 text-green-800 border-green-200";
+      case "not paid":
+      case "unpaid":
+        return "bg-red-100 text-red-800 border-red-200";
+      case "pending":
+        return "bg-yellow-100 text-yellow-800 border-yellow-200";
+      case "processing":
+        return "bg-blue-100 text-blue-800 border-blue-200";
+      case "cancelled":
+        return "bg-gray-100 text-gray-800 border-gray-200";
+      default:
+        return "bg-gray-100 text-gray-800 border-gray-200";
+    }
+  };
+
+  console.log("status", status);
+
+  return (
+    <span
+      className={`px-2.5 py-0.5 text-xs font-medium rounded-full border ${getStatusStyles()}`}
+    >
+      {status}
+    </span>
+  );
+};
+
 // Generic table component that accepts any data type
 export default function TableComponent<T extends Record<string, any>>({
   headersConfig,
   data,
-  className = "",
   emptyMessage = "No data available",
 }: TableProps<T>) {
   const [sortConfig, setSortConfig] = useState<{
@@ -50,6 +80,11 @@ export default function TableComponent<T extends Record<string, any>>({
   const formatValue = (value: any, header: HeaderConfig) => {
     if (header.formatter) return header.formatter(value);
     if (value === null || value === undefined) return "-";
+
+    if (header.type === "status") {
+      console.log("value", value);
+      return <StatusTag status={value} />;
+    }
 
     if (header.type === "date") {
       return new Date(value).toLocaleString("en-US", {
@@ -99,7 +134,7 @@ export default function TableComponent<T extends Record<string, any>>({
   }
 
   return (
-    <div className={`w-full overflow-x-auto rounded-lg shadow ${className}`}>
+    <div className="w-full overflow-x-auto rounded-lg shadow bg-white">
       <table className="w-full text-sm text-left">
         <thead className="text-xs text-gray-700 uppercase bg-gray-50 border-b">
           <tr>

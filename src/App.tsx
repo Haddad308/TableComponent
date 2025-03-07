@@ -35,7 +35,7 @@ const headersConfig: HeaderConfig[] = [
   {
     key: "payment_status",
     label: "Status",
-    type: "string" as const,
+    type: "status" as const,
     sortable: true,
   },
   {
